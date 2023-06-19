@@ -1,10 +1,10 @@
 const std = @import("std");
 const gl = @import("gl.zig");
-const zigimg = @import("zigimg");
 const Shader = @import("shader.zig").Shader;
 const glLog = std.log.scoped(.OpenGL);
 const c = @cImport({
     @cInclude("SDL2/SDL.h");
+    @cInclude("stb_image.h");
 });
 
 const Allocator = std.mem.Allocator;
@@ -126,21 +126,25 @@ pub fn main() !void {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-    var image = try zigimg.Image.fromFilePath(allocator, "container.png");
-    defer image.deinit();
-    if (true) return;
-    gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        @intCast(c_int, image.width),
-        @intCast(c_int, image.height),
-        0,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        image.rawBytes().ptr
-    );
+    {
+        var w: i32 = undefined;
+        var h: i32 = undefined;
+        var nch: i32 = undefined;
+        const data = c.stbi_load("container.jpg", &w, &h, &nch, 0)
+            orelse return error.FailedToLoadImage;
+        defer c.stbi_image_free(data);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGB,
+            w,
+            h,
+            0,
+            gl.RGB,
+            gl.UNSIGNED_BYTE,
+            data
+        );
+    }
     gl.generateMipmap(gl.TEXTURE_2D);
 
     var event: c.SDL_Event = undefined;
@@ -157,8 +161,8 @@ pub fn main() !void {
 
         gl.clearColor(0.2, 0.3, 0.3, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
-        //gl.activeTexture(gl.TEXTURE0);
-        //gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
         shader.use();
         try shader.set(i32, "texture1", 0);
         gl.bindVertexArray(vao);

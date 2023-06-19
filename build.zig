@@ -23,10 +23,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    const zigimg = b.addModule("zigimg", .{
-        .source_file = .{ .path = "deps/zigimg/zigimg.zig" }
-    });
-    exe.addModule("zigimg", zigimg);
+    exe.addIncludePath("deps/c");
+    exe.addCSourceFile("deps/c/stb_image_impl.c", &[_][]const u8{"--std=c99"});
     exe.linkLibC();
     exe.linkSystemLibraryPkgConfigOnly("sdl2");
 
